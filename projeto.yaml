@@ -1,0 +1,209 @@
+esphome:
+  name: testes
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: "123"
+
+ota:
+  password: "123"
+
+# CONFIGURAÇÕES DE WIFI
+wifi:
+  ssid: "EDUARDO-2.4G"
+  password: "16r04o18b"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Testes Fallback Hotspot"
+    password: "MnDNDSlFT9Mm"
+
+
+# Example EAP configuration
+# https://esphome.io/components/wifi.html
+#wifi:
+#  networks:
+#  - ssid: eduroam
+#    eap:
+#      username: eduardo22santos@ufs.br
+#      password: Edu.gtx66
+#  - ssid: eduroam
+#    eap:
+#      identity: eduardo22santos@ufs.br
+
+
+captive_portal:
+
+##################################################################
+#  I2C e SPI
+##################################################################
+i2c:
+  sda: 21
+  scl: 22
+  scan: true
+  id: i2c_bus
+
+
+
+##################################################################
+#  SUBSTITUIÇÕES E MQTT
+##################################################################
+substitutions:
+  intervalo: 30s
+  topicoMqtt: channels/1706071/publish
+
+
+mqtt:
+  broker: mqtt3.thingspeak.com
+  username: GhYJGgosOQYzDTwtMQETMxM
+  client_id: GhYJGgosOQYzDTwtMQETMxM
+  password: OnvJFslbDJ+YpeaBIpiTfVKr
+  port: 1883
+  id: mqtt_id
+  discovery: false
+  discovery_retain: false
+  discovery_prefix: channels/1706071/publish
+  topic_prefix: channels/1706071/publish
+
+some_option:
+  topic: $topicoMqtt
+  payload: online
+  qos: 0
+  retain: true
+ 
+
+
+
+interval:
+  - interval: 30s
+    then:
+      - mqtt.publish:
+          topic: $topicoMqtt
+          payload: !lambda |-
+            String enviar = String("field1="+String(id(tempBulboSeco)) +
+                          "&field2="+String(id(tempBulboUmido))+
+                          "&field3="+String(id(tempGloboNegro))+
+                          "&field4="+String(id(umidadeRelativa))+
+                          "&field5="+String(id(pressaoHpa)));
+            return enviar.c_str();
+
+
+##################################################################
+#  VARIÁVEIS GLOBAIS
+##################################################################
+globals:
+  - id: tempBulboSeco
+    type: float
+    initial_value: '0'
+  - id: tempBulboUmido
+    type: float
+    initial_value: '0'
+  - id: tempGloboNegro
+    type: float
+    initial_value: '0'
+  - id: umidadeRelativa
+    type: float
+    initial_value: '0'
+  - id: pressaoHpa
+    type: float
+    initial_value: '0'
+  - id: orvalho
+    type: float
+    initial_value: '0'
+  - id: itu
+    type: float
+    initial_value: '0'
+  - id: itgu
+    type: float
+    initial_value: '0'
+
+##################################################################
+#  CONFIGURAÇÃO DOS SENSORES
+##################################################################
+dallas:
+  - pin:
+      number: 4
+    update_interval: $intervalo
+    id: bulbo_seco
+  - pin:
+      number: 14
+    update_interval: $intervalo
+    id: bulbo_umido
+  - pin:
+      number: 27
+    update_interval: $intervalo
+    id: globo_negro
+
+sensor:
+  - platform: dallas
+    name: "Temperatura de bulbo Seco"
+    index: 0
+    dallas_id: bulbo_seco
+    id: vBulboSeco
+    disabled_by_default: true
+    on_value: 
+      then:
+        - lambda: 
+            id(tempBulboSeco) = id(vBulboSeco).state;
+
+  - platform: dallas
+    name: "Temperatura de bulbo úmido"
+    index: 0
+    dallas_id: bulbo_umido
+    id: vBulboUmido
+    disabled_by_default: true
+    on_value: 
+      then:
+        - lambda: 
+            id(tempBulboUmido) = id(vBulboUmido).state;
+
+  - platform: dallas
+    name: "Temperatura de globo negro"
+    index: 0
+    dallas_id: globo_negro
+    id: vGloboNegro
+    disabled_by_default: true
+    on_value: 
+      then:
+        - lambda: 
+            id(tempGloboNegro) = id(vGloboNegro).state;
+
+  - platform: htu21d
+    temperature:
+      name: "HTU21D TEMPERATURA"
+    humidity:
+      name: "HTU21D UMIDADE"
+      id: htu21d_umidade
+      disabled_by_default: true
+      on_value: 
+        then:
+          - lambda: 
+              id(umidadeRelativa) = id(htu21d_umidade).state;
+    update_interval: $intervalo
+
+  - platform: bmp280
+    pressure:
+      name: "Pressão atmosférica"
+      id: pressao
+      disabled_by_default: true
+      on_value: 
+        then:
+          - lambda: 
+              id(pressaoHpa) = id(pressao).state;
+    address: 0x76
+    update_interval: $intervalo
+
+
+
+    
+
+      
+      
